@@ -10,17 +10,16 @@ import java.awt.image.BufferStrategy;
 import javax.swing.JFrame;
 
 public class GraphicsEngineDisplay extends Canvas implements Runnable {
-    private JFrame renderWindow;
+    private final JFrame renderWindow;
     private Thread thread;
 
-    private static String title = "3DGraphicsEngine";
     private static boolean active = false;
 
     private static final int WIDTH = 500;
     private static final int HEIGHT = 500;
     
     /* Test Cube */
-    private static mesh meshCube = new mesh();
+    private static final mesh meshCube = new mesh();
 
     GraphicsEngineDisplay() {
         this.renderWindow = new JFrame();
@@ -49,12 +48,13 @@ public class GraphicsEngineDisplay extends Canvas implements Runnable {
 
     public static void main(String[] args) {
         GraphicsEngineDisplay window = new GraphicsEngineDisplay();
-        window.renderWindow.setTitle(title);
+        window.renderWindow.setTitle("3DGraphicsEngine");
         window.renderWindow.add(window);
         window.renderWindow.pack();
         window.renderWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.renderWindow.setResizable(false);
         window.renderWindow.setVisible(true);
+
         window.start();
     }
 
