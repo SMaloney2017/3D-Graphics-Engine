@@ -1,5 +1,7 @@
 package graphicsengine;
 
+import graphicsengine.structures.*;
+
 import java.awt.Canvas;
 import java.awt.Color;
 import java.awt.Dimension;
@@ -18,12 +20,12 @@ public class GraphicsEngineDisplay extends Canvas implements Runnable {
     private static final int HEIGHT = 500;
     
     /* Test Cube */
-    private static mesh meshCube;
+    private static mesh meshCube = new mesh();
 
     GraphicsEngineDisplay() {
         this.renderWindow = new JFrame();
         this.renderWindow.setPreferredSize(new Dimension(WIDTH, HEIGHT));
-        
+
         /* Create meshCube w/ triangles for dev testing */
         meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(0, 1, 0), new vec3d(1, 1, 0)));
         meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(1, 1, 0), new vec3d(1, 0, 0)));
