@@ -16,10 +16,33 @@ public class GraphicsEngineDisplay extends Canvas implements Runnable {
 
     private static final int WIDTH = 500;
     private static final int HEIGHT = 500;
+    
+    /* Test Cube */
+    private static mesh meshCube;
 
     GraphicsEngineDisplay() {
         this.renderWindow = new JFrame();
         this.renderWindow.setPreferredSize(new Dimension(WIDTH, HEIGHT));
+        
+        /* Create meshCube w/ triangles for dev testing */
+        meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(0, 1, 0), new vec3d(1, 1, 0)));
+        meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(1, 1, 0), new vec3d(1, 0, 0)));
+
+        meshCube.tris.add(new triangle(new vec3d(1, 0, 0), new vec3d(1, 1, 0), new vec3d(1, 1, 1)));
+        meshCube.tris.add(new triangle(new vec3d(1, 0, 0), new vec3d(1, 1, 1), new vec3d(1, 0, 1)));
+
+        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(1, 1, 1), new vec3d(0, 1, 1)));
+        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 1, 1), new vec3d(0, 0, 1)));
+
+        meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(0, 1, 1), new vec3d(0, 1, 0)));
+        meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(0, 1, 0), new vec3d(0, 0, 0)));
+
+        meshCube.tris.add(new triangle(new vec3d(0, 1, 0), new vec3d(0, 1, 1), new vec3d(1, 1, 1)));
+        meshCube.tris.add(new triangle(new vec3d(0, 1, 0), new vec3d(1, 1, 1), new vec3d(1, 1, 0)));
+
+        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 0, 1), new vec3d(0, 0, 0)));
+        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 0, 0), new vec3d(1, 0, 0)));
+
     }
 
     public static void main(String[] args) {
