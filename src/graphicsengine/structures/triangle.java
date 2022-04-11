@@ -1,10 +1,15 @@
 package graphicsengine.structures;
-public class triangle {
-    vec3d[] points = new vec3d[3];
 
-    public triangle(vec3d i, vec3d i1, vec3d i2) {
-        this.points[0] = i;
-        this.points[1] = i1;
-        this.points[2] = i2;
+import java.awt.Graphics;
+
+public class triangle {
+    public vec3d[] points;
+
+    public triangle(vec3d... points) {
+        this.points = new vec3d[3];
+        for(int i = 0; i < points.length; i++) {
+            vec3d p = points[i];
+            this.points[i] = new vec3d(p.x, p.y, p.z);
+        }
     }
 }
