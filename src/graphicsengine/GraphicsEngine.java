@@ -11,7 +11,7 @@ import javax.swing.JFrame;
 
 import static java.lang.Math.*;
 
-public class GraphicsEngineDisplay extends Canvas implements Runnable {
+public class GraphicsEngine extends Canvas implements Runnable {
     private final JFrame renderWindow;
     private Thread thread;
 
@@ -25,7 +25,7 @@ public class GraphicsEngineDisplay extends Canvas implements Runnable {
     private static final mat4x4 matProj = new mat4x4();
     float fTheta;
 
-    GraphicsEngineDisplay() {
+    GraphicsEngine() {
         this.renderWindow = new JFrame();
         this.renderWindow.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 
@@ -64,7 +64,7 @@ public class GraphicsEngineDisplay extends Canvas implements Runnable {
     }
 
     public static void main(String[] args) {
-        GraphicsEngineDisplay window = new GraphicsEngineDisplay();
+        GraphicsEngine window = new GraphicsEngine();
         window.renderWindow.setTitle("3DGraphicsEngine");
         window.renderWindow.add(window);
         window.renderWindow.pack();
