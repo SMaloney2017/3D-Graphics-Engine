@@ -7,23 +7,26 @@ import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
-import javax.swing.JFrame;
+import java.io.File;
+import java.util.Arrays;
+import javax.swing.*;
 
 import static java.lang.Math.*;
 
 public class GraphicsEngine extends Canvas implements Runnable {
-    private final JFrame renderWindow;
-    private Thread thread;
-
-    private static boolean active = false;
-
     private static final int WIDTH = 500;
     private static final int HEIGHT = 500;
-    
+    private final JFrame renderWindow;
+
+    private Thread thread;
+    private boolean active = false;
+    private vec3d vCamera = new vec3d(0, 0, 0);
+
+    private static final mat4x4 matProj = new mat4x4(); /* Projection matrix */
+    private float fTheta;
+
     /* Test Cube */
     private static final mesh meshCube = new mesh();
-    private static final mat4x4 matProj = new mat4x4();
-    float fTheta;
 
     GraphicsEngine() {
         this.renderWindow = new JFrame();
@@ -31,7 +34,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
 
         /* Create meshCube w/ triangles for dev testing */
         meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(0, 1, 0), new vec3d(1, 1, 0)));
-        meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(1, 1, 0), new vec3d(1, 0, 0)));
+        meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(1, 1, 0), new vec3d(1, 0, 0)));
 
         meshCube.tris.add(new triangle(new vec3d(1, 0, 0), new vec3d(1, 1, 0), new vec3d(1, 1, 1)));
         meshCube.tris.add(new triangle(new vec3d(1, 0, 0), new vec3d(1, 1, 1), new vec3d(1, 0, 1)));
@@ -65,13 +68,12 @@ public class GraphicsEngine extends Canvas implements Runnable {
 
     public static void main(String[] args) {
         GraphicsEngine window = new GraphicsEngine();
-        window.renderWindow.setTitle("3DGraphicsEngine");
         window.renderWindow.add(window);
         window.renderWindow.pack();
         window.renderWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.renderWindow.setResizable(false);
         window.renderWindow.setVisible(true);
-
+        window.renderWindow.setIconImage(new ImageIcon("./src/resources/icon.png").getImage()); /* Replace JFrame icon with transparent 1x1 pixel */
         window.start();
     }
 
@@ -93,7 +95,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
     @Override
     public void run() {
         long lastTime = System.nanoTime();
-        final double ns = 1000000000.0 / 144.0;
+        final double ns = 1000000000.0 / 144.0; /* run at 144fps */
         float delta = 0;
         while(active) {
             long now = System.nanoTime();
@@ -103,7 +105,6 @@ public class GraphicsEngine extends Canvas implements Runnable {
                 render(delta * 0.01f);
                 delta--;
             }
-            //render(delta / 1000);
         }
         stop();
     }
@@ -119,7 +120,8 @@ public class GraphicsEngine extends Canvas implements Runnable {
         graphics.setColor(Color.BLACK);
         graphics.fillRect(0, 0, WIDTH, HEIGHT);
 
-        mat4x4 matRotZ = new mat4x4(), matRotX = new mat4x4();
+        mat4x4 matRotZ = new mat4x4();
+        mat4x4 matRotX = new mat4x4();
         fTheta += fElapsedTime;
 
         matRotZ.m[0][0] = (float)cos(fTheta);
@@ -138,15 +140,17 @@ public class GraphicsEngine extends Canvas implements Runnable {
 
         /* Loop to draw triangles */
         for(triangle tri : meshCube.tris) {
-            /* Get projected triangle */
+
             triangle triProjected = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
             triangle triRotatedZ = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
             triangle triRotatedZX = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
 
+            /* Rotate in Y-Axis */
             MultiplyMatrixVector(tri.points[0], triRotatedZ.points[0], matRotZ);
             MultiplyMatrixVector(tri.points[1], triRotatedZ.points[1], matRotZ);
             MultiplyMatrixVector(tri.points[2], triRotatedZ.points[2], matRotZ);
 
+            /* Rotate in X-Axis */
             MultiplyMatrixVector(triRotatedZ.points[0], triRotatedZX.points[0], matRotX);
             MultiplyMatrixVector(triRotatedZ.points[1], triRotatedZX.points[1], matRotX);
             MultiplyMatrixVector(triRotatedZ.points[2], triRotatedZX.points[2], matRotX);
@@ -156,50 +160,70 @@ public class GraphicsEngine extends Canvas implements Runnable {
             triTranslated.points[1].z = triRotatedZX.points[1].z + 3.0f;
             triTranslated.points[2].z = triRotatedZX.points[2].z + 3.0f;
 
-            MultiplyMatrixVector(triTranslated.points[0], triProjected.points[0], matProj);
-            MultiplyMatrixVector(triTranslated.points[1], triProjected.points[1], matProj);
-            MultiplyMatrixVector(triTranslated.points[2], triProjected.points[2], matProj);
+            /* Calculate normal of triangles */
+            vec3d normal = new vec3d(0, 0, 0);
+            vec3d line1 = new vec3d(0, 0, 0);
+            vec3d line2 = new vec3d(0, 0, 0);
+            line1.x = triTranslated.points[1].x - triTranslated.points[0].x;
+            line1.y = triTranslated.points[1].y - triTranslated.points[0].y;
+            line1.z = triTranslated.points[1].z - triTranslated.points[0].z;
 
-            /* Scale to view */
-            triProjected.points[0].x += 1.0f;
-            triProjected.points[0].y += 1.0f;
+            line2.x = triTranslated.points[2].x - triTranslated.points[0].x;
+            line2.y = triTranslated.points[2].y - triTranslated.points[0].y;
+            line2.z = triTranslated.points[2].z - triTranslated.points[0].z;
 
-            triProjected.points[1].x += 1.0f;
-            triProjected.points[1].y += 1.0f;
+            normal.x = line1.y * line2.z - line1.z * line2.y;
+            normal.y = line1.z * line2.x - line1.x * line2.z;
+            normal.z = line1.x * line2.y - line1.y * line2.x;
 
-            triProjected.points[2].x += 1.0f;
-            triProjected.points[2].y += 1.0f;
+            /* Normalize 'normal' vector */
+            float normalLen = (float)sqrt(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+            normal.x /= normalLen;
+            normal.y /= normalLen;
+            normal.z /= normalLen;
 
-            triProjected.points[0].x *= 0.5f * (float)WIDTH;
-            triProjected.points[0].y *= 0.5f * (float)HEIGHT;
+            /* Draw triangles facing the camera only */
+            if(normal.x * (triTranslated.points[0].x - vCamera.x) +
+               normal.y * (triTranslated.points[0].y - vCamera.y) +
+               normal.z * (triTranslated.points[0].z - vCamera.z) < 0.0f) {
 
-            triProjected.points[1].x *= 0.5f * (float)WIDTH;
-            triProjected.points[1].y *= 0.5f * (float)HEIGHT;
+                /* Project 3D triangles -> 2D */
+                MultiplyMatrixVector(triTranslated.points[0], triProjected.points[0], matProj);
+                MultiplyMatrixVector(triTranslated.points[1], triProjected.points[1], matProj);
+                MultiplyMatrixVector(triTranslated.points[2], triProjected.points[2], matProj);
 
-            triProjected.points[2].x *= 0.5f * (float)WIDTH;
-            triProjected.points[2].y *= 0.5f * (float)HEIGHT;
+                /* Scale to view */
+                triProjected.points[0].x += 1.0f; triProjected.points[0].y += 1.0f;
+                triProjected.points[1].x += 1.0f; triProjected.points[1].y += 1.0f;
+                triProjected.points[2].x += 1.0f; triProjected.points[2].y += 1.0f;
 
-            DrawTriangle((int)triProjected.points[0].x, (int)triProjected.points[0].y,
-                         (int)triProjected.points[1].x, (int)triProjected.points[1].y,
-                         (int)triProjected.points[2].x, (int)triProjected.points[2].y,
-                         graphics, Color.WHITE);
+                triProjected.points[0].x *= 0.5f * (float) WIDTH; triProjected.points[0].y *= 0.5f * (float) HEIGHT;
+                triProjected.points[1].x *= 0.5f * (float) WIDTH; triProjected.points[1].y *= 0.5f * (float) HEIGHT;
+                triProjected.points[2].x *= 0.5f * (float) WIDTH; triProjected.points[2].y *= 0.5f * (float) HEIGHT;
 
+                /* Draw triangle */
+                DrawTriangle((int) triProjected.points[0].x, (int) triProjected.points[0].y,
+                             (int) triProjected.points[1].x, (int) triProjected.points[1].y,
+                             (int) triProjected.points[2].x, (int) triProjected.points[2].y,
+                             graphics, Color.WHITE);
+
+            }
         }
 
         graphics.dispose();
         bufferStrategy.show();
     }
 
-    private void MultiplyMatrixVector(vec3d i, vec3d o, mat4x4 m) {
-        o.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + m.m[3][0];
-        o.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + m.m[3][1];
-        o.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + m.m[3][2];
-        float w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + m.m[3][3];
+    private void MultiplyMatrixVector(vec3d inputVec, vec3d outputVec, mat4x4 matProj) {
+        outputVec.x = inputVec.x * matProj.m[0][0] + inputVec.y * matProj.m[1][0] + inputVec.z * matProj.m[2][0] + matProj.m[3][0];
+        outputVec.y = inputVec.x * matProj.m[0][1] + inputVec.y * matProj.m[1][1] + inputVec.z * matProj.m[2][1] + matProj.m[3][1];
+        outputVec.z = inputVec.x * matProj.m[0][2] + inputVec.y * matProj.m[1][2] + inputVec.z * matProj.m[2][2] + matProj.m[3][2];
+        float w = inputVec.x * matProj.m[0][3] + inputVec.y * matProj.m[1][3] + inputVec.z * matProj.m[2][3] + matProj.m[3][3];
 
         if(w != 0.0f) {
-            o.x /= w;
-            o.y /= w;
-            o.z /= w;
+            outputVec.x /= w;
+            outputVec.y /= w;
+            outputVec.z /= w;
         }
     }
 
@@ -208,5 +232,9 @@ public class GraphicsEngine extends Canvas implements Runnable {
         g.drawLine(x1, y1, x2, y2);
         g.drawLine(x2, y2, x3, y3);
         g.drawLine(x3, y3, x1, y1);
+    }
+
+    private void FillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Graphics g, Color c) {
+
     }
 }

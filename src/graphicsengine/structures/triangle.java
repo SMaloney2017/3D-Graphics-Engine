@@ -1,7 +1,5 @@
 package graphicsengine.structures;
 
-import java.awt.Graphics;
-
 public class triangle {
     public vec3d[] points;
 
