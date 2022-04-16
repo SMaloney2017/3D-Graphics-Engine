@@ -2,7 +2,6 @@ package graphicsengine.structures;
 
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.util.Arrays;
 import java.util.Objects;
 import java.util.Scanner;
 import java.util.Vector;
@@ -14,7 +13,7 @@ public class mesh {
     public Vector<triangle> tris;
 
     public mesh() {
-        tris = new Vector<triangle>();
+        tris = new Vector<>();
     }
 
     public boolean LoadFromObjectFile(String sFilename) {
