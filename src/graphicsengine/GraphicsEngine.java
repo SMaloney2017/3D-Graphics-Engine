@@ -9,7 +9,11 @@ import java.awt.Graphics;
 import java.awt.image.BufferStrategy;
 import java.io.File;
 import java.util.Arrays;
-import javax.swing.*;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.Vector;
+import javax.swing.JFrame;
+import javax.swing.ImageIcon;
 
 import static java.lang.Math.*;
 
@@ -32,7 +36,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         this.renderWindow = new JFrame();
         this.renderWindow.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 
-        /* Create meshCube w/ triangles for dev testing */
+        /* Create meshCube w/ triangles for dev testing
         meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(0, 1, 0), new vec3d(1, 1, 0)));
         meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(1, 1, 0), new vec3d(1, 0, 0)));
 
@@ -50,6 +54,9 @@ public class GraphicsEngine extends Canvas implements Runnable {
 
         meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 0, 1), new vec3d(0, 0, 0)));
         meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 0, 0), new vec3d(1, 0, 0)));
+        */
+
+        meshCube.LoadFromObjectFile("./src/resources/test.obj");
 
         float fNear = 0.1f;
         float fFar = 1000.0f;
@@ -138,7 +145,9 @@ public class GraphicsEngine extends Canvas implements Runnable {
         matRotX.m[2][2] = (float)cos(fTheta * 0.5f);
         matRotX.m[3][3] = 1;
 
-        /* Loop to draw triangles */
+        Vector<triangle> vecTrianglesToRaster = new Vector<>();
+
+        /* Loop to project triangles */
         for(triangle tri : meshCube.tris) {
 
             triangle triProjected = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
@@ -155,10 +164,11 @@ public class GraphicsEngine extends Canvas implements Runnable {
             MultiplyMatrixVector(triRotatedZ.points[1], triRotatedZX.points[1], matRotX);
             MultiplyMatrixVector(triRotatedZ.points[2], triRotatedZX.points[2], matRotX);
 
+            /* Increase distance from camera */
             triangle triTranslated = triRotatedZX;
-            triTranslated.points[0].z = triRotatedZX.points[0].z + 3.0f;
-            triTranslated.points[1].z = triRotatedZX.points[1].z + 3.0f;
-            triTranslated.points[2].z = triRotatedZX.points[2].z + 3.0f;
+            triTranslated.points[0].z = triRotatedZX.points[0].z + 100.0f;
+            triTranslated.points[1].z = triRotatedZX.points[1].z + 100.0f;
+            triTranslated.points[2].z = triRotatedZX.points[2].z + 100.0f;
 
             /* Calculate normal of triangles */
             vec3d normal = new vec3d(0, 0, 0);
@@ -201,13 +211,26 @@ public class GraphicsEngine extends Canvas implements Runnable {
                 triProjected.points[1].x *= 0.5f * (float) WIDTH; triProjected.points[1].y *= 0.5f * (float) HEIGHT;
                 triProjected.points[2].x *= 0.5f * (float) WIDTH; triProjected.points[2].y *= 0.5f * (float) HEIGHT;
 
-                /* Draw triangle */
-                DrawTriangle((int) triProjected.points[0].x, (int) triProjected.points[0].y,
-                             (int) triProjected.points[1].x, (int) triProjected.points[1].y,
-                             (int) triProjected.points[2].x, (int) triProjected.points[2].y,
-                             graphics, Color.WHITE);
+                /* Create vector of all triangles */
+                vecTrianglesToRaster.add(triProjected);
 
             }
+        }
+
+        /* Sort triangles by average z value */
+        vecTrianglesToRaster.sort(new TriangleComparator());
+
+        /* Loop to draw triangles */
+        for (triangle tri : vecTrianglesToRaster) {
+            FillTriangle((int) tri.points[0].x, (int) tri.points[0].y,
+                    (int) tri.points[1].x, (int) tri.points[1].y,
+                    (int) tri.points[2].x, (int) tri.points[2].y,
+                    graphics, Color.WHITE);
+
+            DrawTriangle((int) tri.points[0].x, (int) tri.points[0].y,
+                    (int) tri.points[1].x, (int) tri.points[1].y,
+                    (int) tri.points[2].x, (int) tri.points[2].y,
+                    graphics, Color.BLACK);
         }
 
         graphics.dispose();
@@ -235,6 +258,18 @@ public class GraphicsEngine extends Canvas implements Runnable {
     }
 
     private void FillTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Graphics g, Color c) {
-
+        g.setColor(c);
+        g.fillPolygon(new int[]{x1, x2, x3}, new int[]{y1, y2, y3}, 3);
     }
+
+    static class TriangleComparator implements Comparator<triangle> {
+        @Override
+        public int compare(triangle t1, triangle t2) {
+            float z1 = (t1.points[0].z + t1.points[1].z + t1.points[2].z) / 3.0f;
+            float z2 = (t2.points[0].z + t2.points[1].z + t2.points[2].z) / 3.0f;
+
+            return Float.compare(z2, z1);
+        }
+    }
+
 }
