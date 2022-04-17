@@ -1,9 +1,9 @@
-package graphicsengine.utility;
+package graphics.utility;
 
-import graphicsengine.structures.mat4x4;
-import graphicsengine.structures.vec3d;
+import graphics.structures.mat4x4;
+import graphics.structures.vec3d;
 
-import static graphicsengine.utility.VectorUtil.*;
+import static graphics.utility.VectorUtil.*;
 import static java.lang.Math.*;
 
 public class MatrixUtil {

@@ -1,8 +1,8 @@
-package graphicsengine.utility;
+package graphics.utility;
 
-import graphicsengine.structures.mat4x4;
-import graphicsengine.structures.triangle;
-import graphicsengine.structures.vec3d;
+import graphics.structures.mat4x4;
+import graphics.structures.triangle;
+import graphics.structures.vec3d;
 
 import static java.lang.Math.sqrt;
 
@@ -32,7 +32,7 @@ public class VectorUtil {
         return new vec3d(v1.x * k, v1.y * k, v1.z * k);
     }
 
-    public static vec3d DivVector(vec3d v1, float k) {
+    public static vec3d VectorDiv(vec3d v1, float k) {
         return new vec3d(v1.x / k, v1.y / k, v1.z / k);
     }
 
@@ -40,13 +40,13 @@ public class VectorUtil {
         return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
     }
 
-    public static float VectorLength(vec3d v1) {
-        return (float)sqrt(VectorDotProduct(v1, v1));
+    public static float VectorLength(vec3d v) {
+        return (float)sqrt(VectorDotProduct(v, v));
     }
 
-    public static vec3d VectorNormalize(vec3d v1) {
-        float l = VectorLength(v1);
-        return new vec3d(v1.x / l, v1.y / l, v1.z / l);
+    public static vec3d VectorNormalize(vec3d v) {
+        float l = VectorLength(v);
+        return new vec3d(v.x / l, v.y / l, v.z / l);
     }
 
     public static vec3d VectorCrossProduct(vec3d v1, vec3d v2) {

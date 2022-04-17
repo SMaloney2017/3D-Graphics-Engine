@@ -1,4 +1,4 @@
-package graphicsengine.structures;
+package graphics.structures;
 
 import java.io.File;
 import java.io.FileNotFoundException;

@@ -1,4 +1,4 @@
-package graphicsengine.structures;
+package graphics.structures;
 
 public class triangle {
     public vec3d[] points;

@@ -1,4 +1,4 @@
-package graphicsengine.structures;
+package graphics.structures;
 
 public class vec3d {
     public float x, y, z, w = 1;
