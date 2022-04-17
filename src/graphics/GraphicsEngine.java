@@ -2,18 +2,18 @@ package graphics;
 
 import graphics.structures.*;
 
-import java.awt.Canvas;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Graphics;
+import java.awt.*;
+import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
-import java.util.Comparator;
-import java.util.Vector;
+import java.util.*;
+import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.ImageIcon;
 
 import static graphics.utility.VectorUtil.*;
 import static graphics.utility.MatrixUtil.*;
+import static java.awt.event.KeyEvent.VK_DOWN;
+import static java.awt.event.KeyEvent.VK_UP;
 
 public class GraphicsEngine extends Canvas implements Runnable {
     private static final int WIDTH = 500;
@@ -22,9 +22,12 @@ public class GraphicsEngine extends Canvas implements Runnable {
 
     private Thread thread;
     private boolean active = false;
-    private vec3d vCamera = new vec3d(0, 0, 0);
+
+    private vec3d vCamera = new vec3d(0.0f, 0.0f, 0.0f);
+    private vec3d vLookDir = new vec3d(0.0f, 0.0f, 1.0f);
 
     private static mat4x4 matProj; /* Projection matrix */
+    private float fYaw;
     private float fTheta;
 
     /* Object to be rendered */
@@ -85,6 +88,34 @@ public class GraphicsEngine extends Canvas implements Runnable {
     }
 
     private void render(float fElapsedTime) {
+
+        /* Controls */
+        vec3d vForward = VectorMul(vLookDir, 8.0f * fElapsedTime);
+
+        if (Keyboard.isKeyPressed(KeyEvent.VK_UP)) {
+            vCamera.y -= 8.0f * fElapsedTime;
+        }
+
+        if (Keyboard.isKeyPressed(KeyEvent.VK_DOWN)) {
+            vCamera.y += 8.0f * fElapsedTime;
+        }
+
+        if (Keyboard.isKeyPressed(KeyEvent.VK_W)) {
+            vCamera = VectorAdd(vCamera, vForward);
+        }
+
+        if (Keyboard.isKeyPressed(KeyEvent.VK_S)) {
+            vCamera = VectorSub(vCamera, vForward);
+        }
+
+        if (Keyboard.isKeyPressed(KeyEvent.VK_A)) {
+            fYaw += 2.0 * fElapsedTime;
+        }
+
+        if (Keyboard.isKeyPressed(KeyEvent.VK_D)) {
+            fYaw -= 2.0 * fElapsedTime;
+        }
+
         BufferStrategy bufferStrategy = this.getBufferStrategy();
         if(bufferStrategy == null) {
             this.createBufferStrategy(3);
@@ -96,7 +127,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         graphics.fillRect(0, 0, WIDTH, HEIGHT);
 
         mat4x4 matRotZ, matRotX;
-        fTheta += fElapsedTime;
+        // fTheta += fElapsedTime;
 
         matRotZ = MatrixMakeRotationZ(fTheta * 0.5f);
         matRotX = MatrixMakeRotationX(fTheta);
@@ -107,13 +138,27 @@ public class GraphicsEngine extends Canvas implements Runnable {
         matWorld = MatrixMultiplyMatrix(matRotZ, matRotX);
         matWorld = MatrixMultiplyMatrix(matWorld, matTrans);
 
+        vec3d vUp = new vec3d(0.0f, 1.0f, 0.0f);
+        vec3d vTarget = new vec3d(0.0f, 0.0f, 1.0f);
+
+        mat4x4 matCameraRot = MatrixMakeRotationY(fYaw);
+        vLookDir = MatrixMultiplyVector(matCameraRot, vTarget);
+
+        vTarget = VectorAdd(vCamera, vLookDir);
+
+        mat4x4 matCamera = MatrixPointAt(vCamera, vTarget, vUp);
+
+        mat4x4 matView = MatrixQuickInverse(matCamera);
+
         Vector<triangle> vecTrianglesToRaster = new Vector<>();
 
         /* Loop to project triangles */
         for(triangle tri : meshObj.tris) {
 
-            triangle triProjected = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
-            triangle triTransformed = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
+            triangle triProjected = new triangle(new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 0.0f, 0.0f));
+            triangle triTransformed = new triangle(new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 0.0f, 0.0f));
+            triangle triViewed = new triangle(new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 0.0f, 0.0f));
+
 
             triTransformed.points[0] = MatrixMultiplyVector(matWorld, tri.points[0]);
             triTransformed.points[1] = MatrixMultiplyVector(matWorld, tri.points[1]);
@@ -133,28 +178,41 @@ public class GraphicsEngine extends Canvas implements Runnable {
             /* Draw triangles facing the camera only */
             if(VectorDotProduct(normal, vCameraRay) < 0.0f) {
 
-                /* Project 3D triangles -> 2D */
-                triProjected.points[0] = MatrixMultiplyVector(matProj, triTransformed.points[0]);
-                triProjected.points[1] = MatrixMultiplyVector(matProj, triTransformed.points[1]);
-                triProjected.points[2] = MatrixMultiplyVector(matProj, triTransformed.points[2]);
+                /* Convert world space -> view space */
+                triViewed.points[0] = MatrixMultiplyVector(matView, triTransformed.points[0]);
+                triViewed.points[1] = MatrixMultiplyVector(matView, triTransformed.points[1]);
+                triViewed.points[2] = MatrixMultiplyVector(matView, triTransformed.points[2]);
 
-                triProjected.points[0] = VectorDiv(triProjected.points[0], triProjected.points[0].w);
-                triProjected.points[1] = VectorDiv(triProjected.points[1], triProjected.points[1].w);
-                triProjected.points[2] = VectorDiv(triProjected.points[2], triProjected.points[2].w);
+                /* Clip viewed triangles against near plane */
+                int nClippedTriangles = 0;
+                triangle triClip1 = new triangle();
+                triangle triClip2 = new triangle();
+                triangle[] triClipped = TriangleClipAgainstPlane(new vec3d(0.0f, 0.0f, 0.1f), new vec3d(0.0f, 0.0f, 1.0f), triViewed, triClip1, triClip2);
+                nClippedTriangles = triClipped.length;
 
-                /* Scale to view */
-                vec3d vOffsetView = new vec3d(1, 1, 0);
-                triProjected.points[0] = VectorAdd(triProjected.points[0], vOffsetView);
-                triProjected.points[1] = VectorAdd(triProjected.points[1], vOffsetView);
-                triProjected.points[2] = VectorAdd(triProjected.points[2], vOffsetView);
+                for (int n = 0; n < nClippedTriangles; n++) {
+                    /* Project 3D triangles -> 2D */
+                    triProjected.points[0] = MatrixMultiplyVector(matProj, triClipped[n].points[0]);
+                    triProjected.points[1] = MatrixMultiplyVector(matProj, triClipped[n].points[1]);
+                    triProjected.points[2] = MatrixMultiplyVector(matProj, triClipped[n].points[2]);
 
-                triProjected.points[0].x *= 0.5f * (float) WIDTH; triProjected.points[0].y *= 0.5f * (float) HEIGHT;
-                triProjected.points[1].x *= 0.5f * (float) WIDTH; triProjected.points[1].y *= 0.5f * (float) HEIGHT;
-                triProjected.points[2].x *= 0.5f * (float) WIDTH; triProjected.points[2].y *= 0.5f * (float) HEIGHT;
+                    triProjected.points[0] = VectorDiv(triProjected.points[0], triProjected.points[0].w);
+                    triProjected.points[1] = VectorDiv(triProjected.points[1], triProjected.points[1].w);
+                    triProjected.points[2] = VectorDiv(triProjected.points[2], triProjected.points[2].w);
 
-                /* Create vector of all triangles */
-                vecTrianglesToRaster.add(triProjected);
+                    /* Scale to view */
+                    vec3d vOffsetView = new vec3d(1, 1, 0);
+                    triProjected.points[0] = VectorAdd(triProjected.points[0], vOffsetView);
+                    triProjected.points[1] = VectorAdd(triProjected.points[1], vOffsetView);
+                    triProjected.points[2] = VectorAdd(triProjected.points[2], vOffsetView);
 
+                    triProjected.points[0].x *= 0.5f * (float) WIDTH; triProjected.points[0].y *= 0.5f * (float) HEIGHT;
+                    triProjected.points[1].x *= 0.5f * (float) WIDTH; triProjected.points[1].y *= 0.5f * (float) HEIGHT;
+                    triProjected.points[2].x *= 0.5f * (float) WIDTH; triProjected.points[2].y *= 0.5f * (float) HEIGHT;
+
+                    /* Create vector of all triangles */
+                    vecTrianglesToRaster.add(triProjected);
+                }
             }
         }
 
@@ -162,16 +220,55 @@ public class GraphicsEngine extends Canvas implements Runnable {
         vecTrianglesToRaster.sort(new TriangleComparator());
 
         /* Loop to draw triangles */
-        for (triangle tri : vecTrianglesToRaster) {
-            DrawTriangle((int) tri.points[0].x, (int) tri.points[0].y,
-                         (int) tri.points[1].x, (int) tri.points[1].y,
-                         (int) tri.points[2].x, (int) tri.points[2].y,
-                         graphics, Color.BLACK);
+        for (triangle triToRaster : vecTrianglesToRaster) {
 
-            FillTriangle((int) tri.points[0].x, (int) tri.points[0].y,
-                    (int) tri.points[1].x, (int) tri.points[1].y,
-                    (int) tri.points[2].x, (int) tri.points[2].y,
-                    graphics, Color.WHITE);
+            triangle[] triClipped = new triangle[2];
+            Queue<triangle> listTriangles = new LinkedList<>();
+
+            /* Add initial triangle */
+            listTriangles.add(triToRaster);
+            int nNewTriangles = 1;
+            for (int i = 0; i < 4; i++) {
+                int nTrisToAdd = 0;
+                while (nNewTriangles > 0) {
+                    triangle triClip1 = new triangle();
+                    triangle triClip2 = new triangle();
+
+                    triangle front = listTriangles.peek();
+                    listTriangles.poll();
+                    nNewTriangles = nNewTriangles - 1;
+
+                    switch(i) {
+                        case 0: triClipped = TriangleClipAgainstPlane(new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 1.0f, 0.0f), front, triClip1, triClip2);
+                                nTrisToAdd = triClipped.length;
+                                break;
+                        case 1: triClipped = TriangleClipAgainstPlane(new vec3d(0.0f, (float)HEIGHT - 1, 0.0f), new vec3d(0.0f, -1.0f, 0.0f), front, triClip1, triClip2);
+                                nTrisToAdd = triClipped.length;
+                                break;
+                        case 2: triClipped = TriangleClipAgainstPlane(new vec3d(0.0f, 0.0f, 0.0f), new vec3d(1.0f, 0.0f, 0.0f), front, triClip1, triClip2);
+                                nTrisToAdd = triClipped.length;
+                                break;
+                        case 3: triClipped = TriangleClipAgainstPlane(new vec3d((float)WIDTH - 1, 0.0f, 0.0f), new vec3d(-1.0f, 0.0f, 0.0f), front, triClip1, triClip2);
+                                nTrisToAdd = triClipped.length;
+                                break;
+                    }
+                    listTriangles.addAll(Arrays.asList(triClipped).subList(0, nTrisToAdd));
+                }
+                nNewTriangles = listTriangles.size();
+            }
+
+            for(triangle tri: listTriangles) {
+                DrawTriangle((int) tri.points[0].x, (int) tri.points[0].y,
+                        (int) tri.points[1].x, (int) tri.points[1].y,
+                        (int) tri.points[2].x, (int) tri.points[2].y,
+                        graphics, Color.BLACK);
+
+                FillTriangle((int) tri.points[0].x, (int) tri.points[0].y,
+                        (int) tri.points[1].x, (int) tri.points[1].y,
+                        (int) tri.points[2].x, (int) tri.points[2].y,
+                        graphics, Color.WHITE);
+            }
+
         }
 
         graphics.dispose();
@@ -190,6 +287,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         g.setColor(c);
         g.fillPolygon(new int[]{x1, x2, x3}, new int[]{y1, y2, y3}, 3);
     }
+
     /* Utility */
     static class TriangleComparator implements Comparator<triangle> {
         @Override
@@ -198,6 +296,25 @@ public class GraphicsEngine extends Canvas implements Runnable {
             float z2 = (t2.points[0].z + t2.points[1].z + t2.points[2].z) / 3.0f;
 
             return Float.compare(z2, z1);
+        }
+    }
+
+    static class Keyboard {
+
+        private static final Map<Integer, Boolean> pressedKeys = new HashMap<>();
+
+        static {
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(event -> {
+                synchronized (Keyboard.class) {
+                    if (event.getID() == KeyEvent.KEY_PRESSED) pressedKeys.put(event.getKeyCode(), true);
+                    else if (event.getID() == KeyEvent.KEY_RELEASED) pressedKeys.put(event.getKeyCode(), false);
+                    return false;
+                }
+            });
+        }
+
+        public static boolean isKeyPressed(int keyCode) {
+            return pressedKeys.getOrDefault(keyCode, false);
         }
     }
 

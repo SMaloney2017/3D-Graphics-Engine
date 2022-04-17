@@ -4,6 +4,8 @@ import graphics.structures.mat4x4;
 import graphics.structures.triangle;
 import graphics.structures.vec3d;
 
+import java.util.Arrays;
+
 import static java.lang.Math.sqrt;
 
 public class VectorUtil {
@@ -64,16 +66,15 @@ public class VectorUtil {
         return VectorAdd(lineStart, lineToIntersect);
     }
 
+    /* Return signed shortest distance from point to plane, plane normal must be normalized */
     public static float distance(vec3d plane_n, vec3d plane_p, vec3d p) {
         vec3d n = VectorNormalize(p);
         return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - VectorDotProduct(plane_n, plane_p));
     }
 
-    public static int ClipAgainstPlaneTriangle(vec3d plane_p, vec3d plane_n, triangle in_tri, triangle out_tri1, triangle out_tri2) {
+    public static triangle[] TriangleClipAgainstPlane(vec3d plane_p, vec3d plane_n, triangle in_tri, triangle out_tri1, triangle out_tri2) {
         /* Make sure plane normal is indeed normal */
         plane_n = VectorNormalize(plane_n);
-
-        /* Return signed shortest distance from point to plane, plane normal must be normalized */
 
         /* Create two temporary storage arrays to classify points either side of plane
            If distance sign is positive, point lies on "inside" of plane */
@@ -95,25 +96,18 @@ public class VectorUtil {
         /* Now classify triangle points, and break the input triangle into
            smaller output triangles if required. There are four possible
            outcomes... */
-
         if (nInsidePointCount == 0) {
             /* All points lie on the outside of plane, so clip whole triangle
                It ceases to exist */
-
-            return 0; /* No returned triangles are valid */
+            return new triangle[]{}; /* No returned triangles are valid */
         } else if (nInsidePointCount == 3) {
             /* All points lie on the inside of plane, so do nothing
                and allow the triangle to simply pass through */
             out_tri1 = in_tri;
-
-            return 1; /* Just the one returned original triangle is valid */
+            return new triangle[]{out_tri1}; /* Just the one returned original triangle is valid */
         }else if (nInsidePointCount == 1 && nOutsidePointCount == 2) {
             /* Triangle should be clipped. As two points lie outside
                the plane, the triangle simply becomes a smaller triangle */
-
-            /* Copy appearance info to new triangle
-            out_tri1.color =  in_tri.col;
-            out_tri1.sym = in_tri.sym; */
 
             /* The inside point is valid, so keep that... */
             out_tri1.points[0] = inside_points[0];
@@ -122,19 +116,11 @@ public class VectorUtil {
                original sides of the triangle (lines) intersect with the plane */
             out_tri1.points[1] = VectorIntersectPlane(plane_p, plane_n, inside_points[0], outside_points[0]);
             out_tri1.points[2] = VectorIntersectPlane(plane_p, plane_n, inside_points[0], outside_points[1]);
-
-            return 1; /* Return the newly formed single triangle */
+            return new triangle[]{out_tri1}; /* Return the newly formed single triangle */
         }else if (nInsidePointCount == 2 && nOutsidePointCount == 1) {
             /* Triangle should be clipped. As two points lie inside the plane,
                the clipped triangle becomes a "quad". Fortunately, we can
                represent a quad with two new triangles */
-
-            /* Copy appearance info to new triangles
-            out_tri1.col =  in_tri.col;
-            out_tri1.sym = in_tri.sym;
-
-            out_tri2.col =  in_tri.col;
-            out_tri2.sym = in_tri.sym; */
 
             /* The first triangle consists of the two inside points and a new
                point determined by the location where one side of the triangle
@@ -149,10 +135,8 @@ public class VectorUtil {
             out_tri2.points[0] = inside_points[1];
             out_tri2.points[1] = out_tri1.points[2];
             out_tri2.points[2] = VectorIntersectPlane(plane_p, plane_n, inside_points[1], outside_points[0]);
-
-            return 2; /* Return two newly formed triangles which form a quad */
+            return new triangle[]{out_tri1, out_tri2}; /* Return two newly formed triangles which form a quad */
         }
-
-        return 0;
+        return new triangle[]{};
     }
 }
