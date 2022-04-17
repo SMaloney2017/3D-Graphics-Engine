@@ -12,6 +12,8 @@ import java.util.Vector;
 import javax.swing.JFrame;
 import javax.swing.ImageIcon;
 
+import static graphicsengine.utility.VectorUtil.*;
+import static graphicsengine.utility.MatrixUtil.*;
 import static java.lang.Math.*;
 
 public class GraphicsEngine extends Canvas implements Runnable {
@@ -26,34 +28,14 @@ public class GraphicsEngine extends Canvas implements Runnable {
     private static final mat4x4 matProj = new mat4x4(); /* Projection matrix */
     private float fTheta;
 
-    /* Test Cube */
-    private static final mesh meshCube = new mesh();
+    /* Object to be rendered */
+    private static final mesh meshObj = new mesh();
 
     GraphicsEngine() {
         this.renderWindow = new JFrame();
         this.renderWindow.setPreferredSize(new Dimension(WIDTH, HEIGHT));
 
-        /* Create meshCube w/ triangles for dev testing
-        meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(0, 1, 0), new vec3d(1, 1, 0)));
-        meshCube.tris.add(new triangle(new vec3d(0, 0, 0), new vec3d(1, 1, 0), new vec3d(1, 0, 0)));
-
-        meshCube.tris.add(new triangle(new vec3d(1, 0, 0), new vec3d(1, 1, 0), new vec3d(1, 1, 1)));
-        meshCube.tris.add(new triangle(new vec3d(1, 0, 0), new vec3d(1, 1, 1), new vec3d(1, 0, 1)));
-
-        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(1, 1, 1), new vec3d(0, 1, 1)));
-        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 1, 1), new vec3d(0, 0, 1)));
-
-        meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(0, 1, 1), new vec3d(0, 1, 0)));
-        meshCube.tris.add(new triangle(new vec3d(0, 0, 1), new vec3d(0, 1, 0), new vec3d(0, 0, 0)));
-
-        meshCube.tris.add(new triangle(new vec3d(0, 1, 0), new vec3d(0, 1, 1), new vec3d(1, 1, 1)));
-        meshCube.tris.add(new triangle(new vec3d(0, 1, 0), new vec3d(1, 1, 1), new vec3d(1, 1, 0)));
-
-        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 0, 1), new vec3d(0, 0, 0)));
-        meshCube.tris.add(new triangle(new vec3d(1, 0, 1), new vec3d(0, 0, 0), new vec3d(1, 0, 0)));
-        */
-
-        meshCube.LoadFromObjectFile("./src/resources/test.obj");
+        meshObj.LoadFromObjectFile("./src/graphicsengine/resources/test.obj");
 
         float fNear = 0.1f;
         float fFar = 1000.0f;
@@ -77,7 +59,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         window.renderWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.renderWindow.setResizable(false);
         window.renderWindow.setVisible(true);
-        window.renderWindow.setIconImage(new ImageIcon("./src/resources/icon.png").getImage()); /* Replace JFrame icon with transparent 1x1 pixel */
+        window.renderWindow.setIconImage(new ImageIcon("./src/graphicsengine.resources/icon.png").getImage()); /* Replace JFrame icon with transparent 1x1 pixel */
         window.start();
     }
 
@@ -145,7 +127,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         Vector<triangle> vecTrianglesToRaster = new Vector<>();
 
         /* Loop to project triangles */
-        for(triangle tri : meshCube.tris) {
+        for(triangle tri : meshObj.tris) {
 
             triangle triProjected = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
             triangle triRotatedZ = new triangle(new vec3d(0, 0, 0), new vec3d(0, 0, 0), new vec3d(0, 0, 0));
@@ -234,19 +216,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         bufferStrategy.show();
     }
 
-    private void MultiplyMatrixVector(vec3d inputVec, vec3d outputVec, mat4x4 matProj) {
-        outputVec.x = inputVec.x * matProj.m[0][0] + inputVec.y * matProj.m[1][0] + inputVec.z * matProj.m[2][0] + matProj.m[3][0];
-        outputVec.y = inputVec.x * matProj.m[0][1] + inputVec.y * matProj.m[1][1] + inputVec.z * matProj.m[2][1] + matProj.m[3][1];
-        outputVec.z = inputVec.x * matProj.m[0][2] + inputVec.y * matProj.m[1][2] + inputVec.z * matProj.m[2][2] + matProj.m[3][2];
-        float w = inputVec.x * matProj.m[0][3] + inputVec.y * matProj.m[1][3] + inputVec.z * matProj.m[2][3] + matProj.m[3][3];
-
-        if(w != 0.0f) {
-            outputVec.x /= w;
-            outputVec.y /= w;
-            outputVec.z /= w;
-        }
-    }
-
+    /* Draw graphics */
     private void DrawTriangle(int x1, int y1, int x2, int y2, int x3, int y3, Graphics g, Color c) {
         g.setColor(c);
         g.drawLine(x1, y1, x2, y2);
@@ -259,6 +229,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         g.fillPolygon(new int[]{x1, x2, x3}, new int[]{y1, y2, y3}, 3);
     }
 
+    /* Utility */
     static class TriangleComparator implements Comparator<triangle> {
         @Override
         public int compare(triangle t1, triangle t2) {
