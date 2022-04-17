@@ -59,7 +59,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         window.renderWindow.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         window.renderWindow.setResizable(false);
         window.renderWindow.setVisible(true);
-        window.renderWindow.setIconImage(new ImageIcon("./src/graphicsengine.resources/icon.png").getImage()); /* Replace JFrame icon with transparent 1x1 pixel */
+        window.renderWindow.setIconImage(new ImageIcon("./src/graphicsengine/resources/icon.png").getImage()); /* Replace JFrame icon with transparent 1x1 pixel */
         window.start();
     }
 
