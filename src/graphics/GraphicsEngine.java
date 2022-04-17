@@ -127,7 +127,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         graphics.fillRect(0, 0, WIDTH, HEIGHT);
 
         mat4x4 matRotZ, matRotX;
-        // fTheta += fElapsedTime;
+        fTheta += fElapsedTime;
 
         matRotZ = MatrixMakeRotationZ(fTheta * 0.5f);
         matRotX = MatrixMakeRotationX(fTheta);
