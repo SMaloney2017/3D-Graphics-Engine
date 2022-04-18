@@ -126,17 +126,18 @@ public class GraphicsEngine extends Canvas implements Runnable {
         graphics.setColor(Color.BLACK);
         graphics.fillRect(0, 0, WIDTH, HEIGHT);
 
+        /* Rotation matrices */
         mat4x4 matRotZ, matRotX;
         fTheta += fElapsedTime;
 
         matRotZ = MatrixMakeRotationZ(fTheta * 0.5f);
         matRotX = MatrixMakeRotationX(fTheta);
 
+        mat4x4 matWorld;
         mat4x4 matTrans = MatrixMakeTranslation(0.0f, 0.0f, 5.0f);
 
-        mat4x4 matWorld;
-        matWorld = MatrixMultiplyMatrix(matRotZ, matRotX);
-        matWorld = MatrixMultiplyMatrix(matWorld, matTrans);
+        matWorld = MatrixMultiplyMatrix(matRotZ, matRotX); /* Apply rotation matrices */
+        matWorld = MatrixMultiplyMatrix(matWorld, matTrans); /* Apply Translation matrices */
 
         vec3d vUp = new vec3d(0.0f, 1.0f, 0.0f);
         vec3d vTarget = new vec3d(0.0f, 0.0f, 1.0f);
@@ -171,10 +172,10 @@ public class GraphicsEngine extends Canvas implements Runnable {
             line2 = VectorSub(triTransformed.points[2], triTransformed.points[0]);
 
             normal = VectorCrossProduct(line1, line2);
-
             normal = VectorNormalize(normal);
 
             vec3d vCameraRay = VectorSub(triTransformed.points[0], vCamera);
+
             /* Draw triangles facing the camera only */
             if(VectorDotProduct(normal, vCameraRay) < 0.0f) {
 
@@ -216,12 +217,12 @@ public class GraphicsEngine extends Canvas implements Runnable {
             }
         }
 
-        /* Sort triangles by average z value */
+        /* Sort triangles by average Z value */
         vecTrianglesToRaster.sort(new TriangleComparator());
 
         /* Loop to draw triangles */
         for (triangle triToRaster : vecTrianglesToRaster) {
-
+            /* Clip triangles against edges of viewing window */
             triangle[] triClipped = new triangle[2];
             Queue<triangle> listTriangles = new LinkedList<>();
 
@@ -237,7 +238,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
                     triangle front = listTriangles.peek();
                     listTriangles.poll();
                     nNewTriangles = nNewTriangles - 1;
-
+                    /* For each window boarder */
                     switch(i) {
                         case 0: triClipped = TriangleClipAgainstPlane(new vec3d(0.0f, 0.0f, 0.0f), new vec3d(0.0f, 1.0f, 0.0f), front, triClip1, triClip2);
                                 nTrisToAdd = triClipped.length;
@@ -258,15 +259,18 @@ public class GraphicsEngine extends Canvas implements Runnable {
             }
 
             for(triangle tri: listTriangles) {
+
+                /* Draw outline of triangle */
                 DrawTriangle((int) tri.points[0].x, (int) tri.points[0].y,
                         (int) tri.points[1].x, (int) tri.points[1].y,
                         (int) tri.points[2].x, (int) tri.points[2].y,
-                        graphics, Color.BLACK);
+                        graphics, Color.WHITE);
 
+                /* Draw filled triangle */
                 FillTriangle((int) tri.points[0].x, (int) tri.points[0].y,
                         (int) tri.points[1].x, (int) tri.points[1].y,
                         (int) tri.points[2].x, (int) tri.points[2].y,
-                        graphics, Color.WHITE);
+                        graphics, Color.BLACK);
             }
 
         }
