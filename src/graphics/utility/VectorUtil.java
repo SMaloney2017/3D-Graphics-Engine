@@ -9,18 +9,6 @@ import java.util.Arrays;
 import static java.lang.Math.sqrt;
 
 public class VectorUtil {
-    public static void MultiplyMatrixVector(vec3d inputVec, vec3d outputVec, mat4x4 matProj) {
-        outputVec.x = inputVec.x * matProj.m[0][0] + inputVec.y * matProj.m[1][0] + inputVec.z * matProj.m[2][0] + matProj.m[3][0];
-        outputVec.y = inputVec.x * matProj.m[0][1] + inputVec.y * matProj.m[1][1] + inputVec.z * matProj.m[2][1] + matProj.m[3][1];
-        outputVec.z = inputVec.x * matProj.m[0][2] + inputVec.y * matProj.m[1][2] + inputVec.z * matProj.m[2][2] + matProj.m[3][2];
-        float w = inputVec.x * matProj.m[0][3] + inputVec.y * matProj.m[1][3] + inputVec.z * matProj.m[2][3] + matProj.m[3][3];
-
-        if(w != 0.0f) {
-            outputVec.x /= w;
-            outputVec.y /= w;
-            outputVec.z /= w;
-        }
-    }
 
     public static vec3d VectorAdd(vec3d v1, vec3d v2) {
         return new vec3d(v1.x + v2.x, v1.y + v2.y, v1.z + v2.z);

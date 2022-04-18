@@ -134,7 +134,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
         mat4x4 matTrans = MatrixMakeTranslation(0.0f, 0.0f, 5.0f);
 
         matWorld = MatrixMultiplyMatrix(matRotZ, matRotX); /* Apply rotation matrices */
-        matWorld = MatrixMultiplyMatrix(matWorld, matTrans); /* Apply Translation matrices */
+        matWorld = MatrixMultiplyMatrix(matWorld, matTrans); /* Apply translation matrices */
 
         vec3d vUp = new vec3d(0.0f, 1.0f, 0.0f);
         vec3d vTarget = new vec3d(0.0f, 0.0f, 1.0f);
