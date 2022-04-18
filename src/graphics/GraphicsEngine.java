@@ -6,14 +6,11 @@ import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.image.BufferStrategy;
 import java.util.*;
-import java.util.List;
 import javax.swing.JFrame;
 import javax.swing.ImageIcon;
 
 import static graphics.utility.VectorUtil.*;
 import static graphics.utility.MatrixUtil.*;
-import static java.awt.event.KeyEvent.VK_DOWN;
-import static java.awt.event.KeyEvent.VK_UP;
 
 public class GraphicsEngine extends Canvas implements Runnable {
     private static final int WIDTH = 500;
@@ -185,7 +182,7 @@ public class GraphicsEngine extends Canvas implements Runnable {
                 triViewed.points[2] = MatrixMultiplyVector(matView, triTransformed.points[2]);
 
                 /* Clip viewed triangles against near plane */
-                int nClippedTriangles = 0;
+                int nClippedTriangles;
                 triangle triClip1 = new triangle();
                 triangle triClip2 = new triangle();
                 triangle[] triClipped = TriangleClipAgainstPlane(new vec3d(0.0f, 0.0f, 0.1f), new vec3d(0.0f, 0.0f, 1.0f), triViewed, triClip1, triClip2);
